@@ -70,6 +70,11 @@ ENV BUILD_LLVM="0"
 ENV BUILD_AITER_ALL="0"
 ENV BUILD_MOONCAKE="1"
 ENV AITER_COMMIT="v0.1.11.post1"
+# PyTorch 2.9.1 inductor generates Triton kernels expecting KernelMetadata.cluster_dims
+# (a CUDA H100 cluster-launch attribute absent in the ROCm Triton build), crashing on
+# any @torch.compile decorated function. Disable TorchDynamo entirely; CUDA graphs are
+# unaffected as they operate at the HIP level independently of TorchDynamo.
+ENV TORCHDYNAMO_DISABLE=1
 
 # ===============================
 # Chosen arch and args
