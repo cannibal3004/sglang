@@ -3,6 +3,7 @@
 #   docker build --build-arg SGL_BRANCH=v0.5.9 --build-arg GPU_ARCH=gfx942-rocm720 -t v0.5.9-rocm720-mi30x -f rocm.Dockerfile .
 #   docker build --build-arg SGL_BRANCH=v0.5.9 --build-arg GPU_ARCH=gfx950 -t v0.5.9-rocm700-mi35x -f rocm.Dockerfile .
 #   docker build --build-arg SGL_BRANCH=v0.5.9 --build-arg GPU_ARCH=gfx950-rocm720 -t v0.5.9-rocm720-mi35x -f rocm.Dockerfile .
+#   docker build --build-arg SGL_BRANCH=main --build-arg GPU_ARCH=gfx1151-rocm711 -t sglang-rocm711-rx8060s -f rocm.Dockerfile .
 
 # Usage (to build SGLang ROCm + Mori docker image):
 #   docker build --build-arg SGL_BRANCH=v0.5.9 --build-arg GPU_ARCH=gfx942 --build-arg ENABLE_MORI=1 --build-arg NIC_BACKEND=ainic -t v0.5.9-rocm700-mi30x -f rocm.Dockerfile .
@@ -15,6 +16,7 @@ ARG BASE_IMAGE_942="rocm/sgl-dev:rocm7-vllm-20250904"
 ARG BASE_IMAGE_942_ROCM720="rocm/pytorch:rocm7.2_ubuntu22.04_py3.10_pytorch_release_2.9.1"
 ARG BASE_IMAGE_950="rocm/sgl-dev:rocm7-vllm-20250904"
 ARG BASE_IMAGE_950_ROCM720="rocm/pytorch:rocm7.2_ubuntu22.04_py3.10_pytorch_release_2.9.1"
+ARG BASE_IMAGE_1151_ROCM711="rocm/pytorch:rocm7.1.1_ubuntu22.04_py3.10_pytorch_release_2.9.1"
 
 # This is necessary for scope purpose
 ARG GPU_ARCH=gfx950
@@ -60,15 +62,25 @@ ENV BUILD_MOONCAKE="1"
 ENV AITER_COMMIT="v0.1.11.post1"
 
 # ===============================
+# Base image 1151 with rocm711 and args (Radeon 8060S / Ryzen AI Max+ 395, gfx1151)
+FROM $BASE_IMAGE_1151_ROCM711 AS gfx1151-rocm711
+ENV BUILD_VLLM="0"
+ENV BUILD_TRITON="1"
+ENV BUILD_LLVM="0"
+ENV BUILD_AITER_ALL="0"
+ENV BUILD_MOONCAKE="1"
+ENV AITER_COMMIT="v0.1.11.post1"
+
+# ===============================
 # Chosen arch and args
 FROM ${GPU_ARCH}
 
 # This is necessary for scope purpose, again
 ARG GPU_ARCH=gfx950
 ENV GPU_ARCH_LIST=${GPU_ARCH%-*}
-ENV PYTORCH_ROCM_ARCH=gfx942;gfx950
+ENV PYTORCH_ROCM_ARCH=gfx942;gfx950;gfx1151
 
-ARG SGL_REPO="https://github.com/sgl-project/sglang.git"
+ARG SGL_REPO="https://github.com/cannibal3004/sglang.git"
 ARG SGL_DEFAULT="main"
 ARG SGL_BRANCH=${SGL_DEFAULT}
 
@@ -112,8 +124,8 @@ USER root
 # See https://github.com/ROCm/ROCm/issues/5992
 RUN set -eux; \
     case "${GPU_ARCH}" in \
-      *rocm720*) \
-        echo "ROCm 7.2 (GPU_ARCH=${GPU_ARCH}): libdrm-amdgpu packages already present, skipping"; \
+      *rocm720*|*rocm711*) \
+        echo "ROCm 7.x pytorch image (GPU_ARCH=${GPU_ARCH}): libdrm-amdgpu packages already present, skipping"; \
         ;; \
       *) \
         echo "ROCm 7.0 (GPU_ARCH=${GPU_ARCH}): installing libdrm-amdgpu packages"; \
@@ -140,13 +152,13 @@ RUN apt-get purge -y sccache; python -m pip uninstall -y sccache; rm -f "$(which
 # The ROCm 7.2 base image (rocm/pytorch) does not pre-install this package.
 RUN set -eux; \
     case "${GPU_ARCH}" in \
-      *rocm720*) \
-        echo "ROCm 7.2 flavor detected from GPU_ARCH=${GPU_ARCH}"; \
+      *rocm720*|*rocm711*) \
+        echo "ROCm pytorch image (GPU_ARCH=${GPU_ARCH}): installing amdsmi"; \
         cd /opt/rocm/share/amd_smi \
         && python3 -m pip install --no-cache-dir . \
         ;; \
       *) \
-        echo "Not rocm720 (GPU_ARCH=${GPU_ARCH}), skip amdsmi installation"; \
+        echo "Not rocm720/rocm711 (GPU_ARCH=${GPU_ARCH}), skip amdsmi installation"; \
         ;; \
     esac
 

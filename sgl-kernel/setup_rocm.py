@@ -72,12 +72,14 @@ if torch.cuda.is_available():
 else:
     print(f"Warning: torch.cuda not available. Using default target: {amdgpu_target}")
 
-if amdgpu_target not in ["gfx942", "gfx950"]:
+if amdgpu_target not in ["gfx942", "gfx950", "gfx1151"]:
     print(
-        f"Warning: Unsupported GPU architecture detected '{amdgpu_target}'. Expected 'gfx942' or 'gfx950'."
+        f"Warning: Unsupported GPU architecture detected '{amdgpu_target}'. Expected 'gfx942', 'gfx950', or 'gfx1151'."
     )
     sys.exit(1)
 
+# gfx942 (MI300/MI325) uses AMD FNUZ FP8.
+# gfx950 (MI350) and gfx1151 (RDNA 4 / Radeon RX 9000 series) use OCP E4M3 FP8.
 fp8_macro = (
     "-DHIP_FP8_TYPE_FNUZ" if amdgpu_target == "gfx942" else "-DHIP_FP8_TYPE_E4M3"
 )
@@ -86,7 +88,8 @@ fp8_macro = (
 # - gfx942 (MI300/MI325): LDS is typically 64KB per workgroup -> keep dynamic smem <= ~48KB
 #   (leaves room for static shared allocations in the kernel).
 # - gfx95x (MI350): LDS is larger (e.g. 160KB per CU) -> allow the original 128KB dynamic smem.
-topk_dynamic_smem_bytes = 48 * 1024 if amdgpu_target == "gfx942" else 32 * 1024 * 4
+# - gfx1151 (RDNA 4 iGPU): LDS is 64KB per workgroup -> keep dynamic smem <= ~48KB.
+topk_dynamic_smem_bytes = 32 * 1024 * 4 if amdgpu_target == "gfx950" else 48 * 1024
 
 hipcc_flags = [
     "-DNDEBUG",
