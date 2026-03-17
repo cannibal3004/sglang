@@ -3,7 +3,7 @@
 #   docker build --build-arg SGL_BRANCH=v0.5.9 --build-arg GPU_ARCH=gfx942-rocm720 -t v0.5.9-rocm720-mi30x -f rocm.Dockerfile .
 #   docker build --build-arg SGL_BRANCH=v0.5.9 --build-arg GPU_ARCH=gfx950 -t v0.5.9-rocm700-mi35x -f rocm.Dockerfile .
 #   docker build --build-arg SGL_BRANCH=v0.5.9 --build-arg GPU_ARCH=gfx950-rocm720 -t v0.5.9-rocm720-mi35x -f rocm.Dockerfile .
-#   docker build --build-arg SGL_BRANCH=main --build-arg GPU_ARCH=gfx1151-rocm711 -t sglang-rocm711-rx8060s -f rocm.Dockerfile .
+#   docker build --build-arg SGL_BRANCH=main --build-arg GPU_ARCH=gfx1151-rocm711 --build-arg SGLANG_USE_AITER_DEFAULT=0 -t sglang-rocm711-rx8060s -f rocm.Dockerfile .
 
 # Usage (to build SGLang ROCm + Mori docker image):
 #   docker build --build-arg SGL_BRANCH=v0.5.9 --build-arg GPU_ARCH=gfx942 --build-arg ENABLE_MORI=1 --build-arg NIC_BACKEND=ainic -t v0.5.9-rocm700-mi30x -f rocm.Dockerfile .
@@ -555,7 +555,8 @@ ENV SGLANG_MOE_PADDING=1
 ENV SGLANG_ROCM_DISABLE_LINEARQUANT=0
 ENV SGLANG_ROCM_FUSED_DECODE_MLA=1
 ENV SGLANG_SET_CPU_AFFINITY=1
-ENV SGLANG_USE_AITER=1
+ARG SGLANG_USE_AITER_DEFAULT="1"
+ENV SGLANG_USE_AITER=${SGLANG_USE_AITER_DEFAULT}
 ENV SGLANG_USE_ROCM700A=1
 
 ENV NCCL_MIN_NCHANNELS=112
