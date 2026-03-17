@@ -2114,7 +2114,8 @@ class ServerArgs:
             ):
                 return "trtllm_mha"
             elif is_hip():
-                return "aiter"
+                _aiter_enabled = bool(int(os.environ.get("SGLANG_USE_AITER", "1")))
+                return "aiter" if _aiter_enabled else "triton"
             elif is_mps():
                 return "torch_native"
             else:
@@ -2126,9 +2127,10 @@ class ServerArgs:
             elif is_sm100_supported():
                 return "flashinfer"
             elif is_hip():
+                _aiter_enabled = bool(int(os.environ.get("SGLANG_USE_AITER", "1")))
                 head_num = model_config.get_num_kv_heads(self.tp_size)
                 # TODO current aiter only support head number 16 or 128 head number
-                if head_num == 128 or head_num == 16:
+                if _aiter_enabled and (head_num == 128 or head_num == 16):
                     return "aiter"
                 else:
                     return "triton"
